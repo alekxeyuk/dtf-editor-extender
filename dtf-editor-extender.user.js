@@ -1,13 +1,16 @@
 // ==UserScript==
-// @name         DTF Editor Extender
+// @name         CMTT Editor Extender
 // @namespace    https://github.com/ureshii-ww
-// @version      1.0.2
-// @description  Extends DTF editor
+// @version      1.0.3
+// @description  Extends CMTT editor
 // @author       ureshii-ww
 // @match        https://dtf.ru/*
+// @match        https://tjournal.ru/*
+// @match        https://vc.ru/*
 // @icon         https://www.google.com/s2/favicons?domain=simply-how.com
 // @grant        none
-// @require      https://code.jquery.com/jquery-3.6.0.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js
+// @require      https://gist.github.com/raw/2625891/waitForKeyElements.js
 // @run-at       document-end
 // ==/UserScript==
 
@@ -20,59 +23,29 @@
         $(".v-popup-fp-overlay").addClass("v-popup-fp-overlay--maximized");
         $(".v-popup-fp-window").addClass("v-popup-fp-window--maximized");
         $(".v-popup-fp-window__control").first().remove();
-    };
+    }
 
     function deleteClasses () {
         $(".v-popup-fp-container").removeClass("v-popup-fp-container--maximized");
         $("body").removeClass(["app--popup-fullpage-maximized", "app--left-column-off"]);
     }
 
-    function mutationEditorCheck () {
-        const target = document.getElementsByClassName('v-popup-fp-container')[0];
+    function doWork() {
+        addClasses();
 
-        const config = {childList: true};
-
-        const callback = function (mutationList, observer) {
-            for (const mutation of mutationList) {
-                if (mutation.addedNodes.length > 0) {
-                    addClasses();
-                }
-
-                if (mutation.removedNodes.length > 0 && mutation.removedNodes[0].classList[0] === "v-popup-fp-overlay") {
+        let callback = (mutationList, observer) => {
+            mutationList.forEach(mutation => {
+                if (mutation.removedNodes.length && mutation.removedNodes[0].classList[0] === "v-popup-fp-overlay") {
                     deleteClasses();
+                    observer.disconnect();
                 }
-            }
+            })
         };
 
-        const observer = new MutationObserver(callback);
-
-        observer.observe(target, config);
+        new MutationObserver(callback).observe(document.querySelector('.v-popup-fp-container'), {childList: true});
     };
 
-    function mutationLayoutCheck () {
-        let find = false;
-
-        const target = document.getElementsByClassName('layout__content')[0];
-
-        const config = {childList: true};
-
-        const callback = function (mutationList, observer) {
-            for (const mutation of mutationList) {
-                if (mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(e => {
-                        if (e.classList[0] === 'v-popup-fp-container'){
-                            observer.disconnect();
-                            mutationEditorCheck();
-                        }
-                    });
-                }
-            }
-        };
-
-        const observer = new MutationObserver(callback);
-
-        observer.observe(target, config);
-    };
-
-    mutationLayoutCheck();
+    waitForKeyElements(
+        '.v-popup-fp-overlay', doWork, false
+    );
 })();
